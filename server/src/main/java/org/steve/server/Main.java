@@ -7,7 +7,7 @@ import org.steve.server.httpd.HttpServer;
 import org.steve.server.websocket.SocketServer;
 
 /**
- * Hello world!
+ * @author Lukas
  *
  */
 public class Main {
@@ -32,4 +32,5 @@ public class Main {
 		System.out.println("HTTP server @ "+ InetAddress.getLocalHost().getHostAddress() + ":" + porthttp);
 		System.out.println("WEBSOCKET server @ "+ InetAddress.getLocalHost().getHostAddress() + ":" + portsocket);
 	}
+	
 }
