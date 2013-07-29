@@ -1,4 +1,4 @@
 Steve-Server
 ============
 
-The repository for the Steve html5 colabration tool server.
+The repository for the Steve html5 collaboration tool server.
