@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2013-10-02T12:39:18</date>
+  <millis>1380710358494</millis>
+  <sequence>0</sequence>
+  <logger>org.steve.server.database.Database</logger>
+  <level>INFO</level>
+  <class>org.steve.server.database.Database</class>
+  <method>&lt;init&gt;</method>
+  <thread>1</thread>
+  <message>Database is ready</message>
+</record>

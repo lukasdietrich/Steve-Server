@@ -1,20 +1,20 @@
 package org.steve.server.httpd;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.DefaultHandler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 
 public class HttpServer {
 
@@ -24,25 +24,14 @@ public class HttpServer {
 		this.http = new Server(port);
 		this.http.setStopAtShutdown(true);
 		
-		final HandlerCollection handler = new HandlerCollection();
+		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 		
-		handler.addHandler(new WrappedHandler("/~", new DefaultHandler() {
-
-			@Override
-			public void handle(String arg0, Request arg1, HttpServletRequest arg2, HttpServletResponse arg3) throws IOException, ServletException {
-				if(arg0.equals("/auth")) {
-					arg3.setStatus(200);
-					arg3.setContentType("text");
-					arg3.getWriter().print("Hi");
-					arg3.getWriter().close();
-				}
-			}
-			
-		}));
+		{
+			context.setContextPath("/");
+			context.addServlet(new ServletHolder(new StaticServlet(base)), "/*");
+		}
 		
-		handler.addHandler(new HttpHandler("/", base, list));
-		
-		this.http.setHandler(handler);
+		this.http.setHandler(context);
 		this.http.start();
 	}
 	
@@ -50,30 +39,47 @@ public class HttpServer {
 		this.http.stop();
 	}
 	
-	private final class HttpHandler extends WrappedHandler {
+	private final class StaticServlet extends HttpServlet {
+		private static final long serialVersionUID = -626814493967094412L;
+
+		private File root;
 		
-		public HttpHandler(String context, File rootDirectory, boolean listDirectories) {
-			super(context);
-			
-			ResourceHandler handler = new ResourceHandler();
-			handler.setDirectoriesListed(listDirectories);
-			handler.setBaseResource(Resource.newResource(rootDirectory));
-			handler.setCacheControl("max-age=0,public");
-			
-			super.setHandler(handler);
+		public StaticServlet(File rootDirectory) {
+			this.root = rootDirectory.getAbsoluteFile();
 		}
-		
-	}
-	
-	private class WrappedHandler extends ContextHandler {
-		
-		protected WrappedHandler(String context, Handler h) {
-			this(context);
-			this.setHandler(h);
-		}
-		
-		protected WrappedHandler(String context) {
-			super(context);
+
+		@Override
+		protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+			HttpSession session = req.getSession(true);
+			boolean login = session.getAttribute("login") != null 
+						 && !session.getAttribute("login").equals(Boolean.FALSE);
+			
+			String uri = req.getRequestURI().replace("/..", "");
+			if(uri.endsWith("/"))
+				uri = uri + "index.html";
+			
+			File resource = new File(root, uri);
+			
+			if(resource.exists()) {
+				resp.setStatus(HttpServletResponse.SC_OK);
+				resp.setContentType(MimeType.getInstance().getMimeForFile(resource.getName()));
+				
+				System.out.println("serving " + uri + " as " + resp.getContentType());
+				
+				InputStream in = new FileInputStream(resource);
+				OutputStream out = resp.getOutputStream();
+				byte[] buffer = new byte[512];
+				int len;
+				
+				while((len = in.read(buffer)) > 0) {
+					out.write(buffer, 0, len);
+				}
+				
+				in.close();
+				out.close();
+			} else {
+				resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+			}
 		}
 		
 	}
